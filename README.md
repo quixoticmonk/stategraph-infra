@@ -13,9 +13,13 @@ This Terraform configuration deploys StateGraph on AWS using ECS EC2 and RDS Pos
 
 ## Prerequisites
 
-1. AWS CLI configured with appropriate permissions
-2. Terraform >= 1.0
-3. Domain name (optional, can use ALB DNS name)
+1. **AWS CLI** configured with appropriate permissions
+2. **Terraform** >= 1.0
+3. **Google OAuth Application** - Set up at [Google Cloud Console](https://console.cloud.google.com/)
+   - Create OAuth 2.0 Client ID for web application
+   - Note the Client ID and Client Secret
+4. **StateGraph License Key** - Obtain from [StateGraph](https://stategraph.com/)
+5. **Domain name** (optional, can use CloudFront domain)
 
 ## Quick Start
 
@@ -56,7 +60,7 @@ The deployment automatically configures these environment variables:
 - `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`: Database connection
 
 **Server Configuration:**
-- `STATEGRAPH_PORT`: Internal server port (8080)
+- `STATEGRAPH_PORT`: Internal server port (8180)
 - `DB_CONNECT_TIMEOUT`: Database connection timeout (120s)
 - `DB_MAX_POOL_SIZE`: Max database connections (100)
 - `DB_IDLE_TX_TIMEOUT`: Idle transaction timeout (180s)
@@ -121,15 +125,25 @@ terraform destroy
 
 ## Troubleshooting
 
-1. **ECS Task Health Checks**: Check CloudWatch logs at `/ecs/stategraph`
-2. **Database Connection**: Verify security groups allow port 5432
-3. **Load Balancer**: Check target group health in AWS Console
+### Common Issues
 
-## StateGraph Features
+1. **Database Connection Issues**
+   - **Check**: Verify security groups allow port 5432 between ECS and RDS
+   - **Check**: Confirm RDS instance is in "available" state
+   - **Check**: Validate database credentials in Secrets Manager
 
-Once deployed, you'll have access to:
+2. **OAuth Configuration**
+   - **Setup**: Configure Google OAuth at [Google Cloud Console](https://console.cloud.google.com/)
+   - **Redirect URI**: Use the `google_oauth_redirect_uri` output value
+   - **Documentation**: See [StateGraph OAuth docs](https://stategraph.com/docs/authentication/google-oauth)
 
-- **Backend**: Terraform HTTP backend with PostgreSQL storage
-- **Inventory**: Infrastructure catalog and CMDB
-- **Insights**: Timeline, search, blast radius analysis
-- **Web UI**: Browse resources, run MQL queries, create dashboards
+3. **Load Balancer Health Checks**
+   - **Check**: Target group health in AWS Console
+   - **Port**: Ensure health checks target the correct container port (8080)
+   - **Path**: Health check endpoint is `/api/v1/health`
+
+### Monitoring
+
+- **CloudWatch Logs**: `/ecs/stategraph`
+- **ECS Service Events**: Check service events for deployment issues
+- **Target Group Health**: Monitor ALB target group for unhealthy targets
