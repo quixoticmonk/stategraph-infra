@@ -202,14 +202,6 @@ resource "aws_ecs_task_definition" "stategraph" {
           value = "stategraph"
         },
         {
-          name  = "DB_PASS"
-          valueFrom = aws_secretsmanager_secret.db_password.arn
-        },
-        {
-          name  = "STATEGRAPH_OAUTH_CLIENT_SECRET"
-          value = var.google_oauth_client_secret
-        },
-        {
           name  = "STATEGRAPH_ENABLE_CORS"
           value = "true"
         },
@@ -240,6 +232,17 @@ resource "aws_ecs_task_definition" "stategraph" {
         {
           name  = "STATEGRAPH_CLIENT_MAX_BODY_SIZE"
           value = "512m"
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "DB_PASS"
+          valueFrom = aws_secretsmanager_secret.db_password.arn
+        },
+        {
+          name      = "STATEGRAPH_OAUTH_CLIENT_SECRET"
+          valueFrom = aws_secretsmanager_secret.google_client_secret.arn
         }
       ]
 
