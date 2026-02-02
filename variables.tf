@@ -32,7 +32,7 @@ variable "ecs_desired_count" {
 variable "stategraph_version" {
   description = "StateGraph Docker image version"
   type        = string
-  default     = "0.1.16"
+  default     = "latest"
 }
 
 variable "google_oauth_client_id" {
@@ -40,14 +40,18 @@ variable "google_oauth_client_id" {
   type        = string
 }
 
-variable "stategraph_license_key" {
-  description = "StateGraph license key"
-  type        = string
-  sensitive   = true
-}
+
 
 variable "google_oauth_client_secret" {
   description = "Google OAuth Client Secret"
   type        = string
   sensitive   = true
+}
+variable "tags" {
+  description = "A map of tags to add to all resources"
+  type        = map(string)
+  default = {
+    solution    = "stategraph"
+    environment = "dev"
+  }
 }

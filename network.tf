@@ -50,6 +50,8 @@ resource "aws_eip" "nat" {
   tags = {
     Name = "stategraph-nat-eip"
   }
+  
+  depends_on = [aws_internet_gateway.main]
 }
 
 resource "aws_nat_gateway" "main" {

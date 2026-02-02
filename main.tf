@@ -155,16 +155,13 @@ resource "aws_ecs_task_definition" "stategraph" {
       ]
 
       memory = 1024
-      
+
       environment = [
         {
           name  = "STATEGRAPH_UI_BASE"
           value = local.stategraph_url
         },
-        {
-          name  = "LICENSE_KEY"
-          value = var.stategraph_license_key
-        },
+
         {
           name  = "STATEGRAPH_OAUTH_TYPE"
           value = "oidc"
@@ -179,7 +176,7 @@ resource "aws_ecs_task_definition" "stategraph" {
         },
         {
           name  = "STATEGRAPH_OAUTH_DISPLAY_NAME"
-          value = "Sign in with Google"
+          value = "with Google"
         },
         {
           name  = "STATEGRAPH_OAUTH_REDIRECT_BASE"
@@ -247,10 +244,10 @@ resource "aws_ecs_task_definition" "stategraph" {
       ]
 
       healthCheck = {
-        command = ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/health || exit 1"]
-        interval = 30
-        timeout = 5
-        retries = 3
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/api/v1/health || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
         startPeriod = 120
       }
 
@@ -285,6 +282,8 @@ resource "aws_ecs_service" "stategraph" {
   }
 
   depends_on = [aws_lb_listener.stategraph, aws_autoscaling_group.ecs]
+  
+  wait_for_steady_state = true
 
   tags = {
     Name = "stategraph-service"
