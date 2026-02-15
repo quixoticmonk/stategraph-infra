@@ -9,6 +9,13 @@ terraform {
       version = ">= 3.0.0"
     }
   }
+  cloud {
+    organization = "ne-devops"
+
+    workspaces {
+      name = "graph"
+    }
+  }
 }
 
 provider "aws" {

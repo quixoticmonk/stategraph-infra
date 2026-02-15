@@ -67,7 +67,7 @@ resource "aws_iam_role_policy" "secrets_access" {
         ]
         Resource = [
           aws_secretsmanager_secret.db_password.arn,
-          aws_secretsmanager_secret.google_client_secret.arn
+          aws_secretsmanager_secret.cognito_client_secret.arn
         ]
       }
     ]
@@ -161,22 +161,21 @@ resource "aws_ecs_task_definition" "stategraph" {
           name  = "STATEGRAPH_UI_BASE"
           value = local.stategraph_url
         },
-
         {
           name  = "STATEGRAPH_OAUTH_TYPE"
           value = "oidc"
         },
         {
           name  = "STATEGRAPH_OAUTH_OIDC_ISSUER_URL"
-          value = "https://accounts.google.com"
+          value = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.main.id}"
         },
         {
           name  = "STATEGRAPH_OAUTH_CLIENT_ID"
-          value = var.google_oauth_client_id
+          value = aws_cognito_user_pool_client.main.id
         },
         {
           name  = "STATEGRAPH_OAUTH_DISPLAY_NAME"
-          value = "with Google"
+          value = "with Cognito"
         },
         {
           name  = "STATEGRAPH_OAUTH_REDIRECT_BASE"
@@ -239,7 +238,7 @@ resource "aws_ecs_task_definition" "stategraph" {
         },
         {
           name      = "STATEGRAPH_OAUTH_CLIENT_SECRET"
-          valueFrom = aws_secretsmanager_secret.google_client_secret.arn
+          valueFrom = aws_secretsmanager_secret.cognito_client_secret.arn
         }
       ]
 

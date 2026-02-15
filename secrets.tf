@@ -12,14 +12,6 @@ resource "aws_secretsmanager_secret_version" "db_password" {
   secret_string = var.db_password != "" ? var.db_password : random_password.db_password[0].result
 }
 
-resource "aws_secretsmanager_secret" "google_client_secret" {
-  name = "stategraph-google-client-secret-${random_id.secret_suffix.hex}"
-}
-
-resource "aws_secretsmanager_secret_version" "google_client_secret" {
-  secret_id     = aws_secretsmanager_secret.google_client_secret.id
-  secret_string = var.google_oauth_client_secret
-}
 
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "stategraph" {

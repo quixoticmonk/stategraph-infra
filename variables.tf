@@ -35,18 +35,7 @@ variable "stategraph_version" {
   default     = "latest"
 }
 
-variable "google_oauth_client_id" {
-  description = "Google OAuth Client ID"
-  type        = string
-}
 
-
-
-variable "google_oauth_client_secret" {
-  description = "Google OAuth Client Secret"
-  type        = string
-  sensitive   = true
-}
 variable "tags" {
   description = "A map of tags to add to all resources"
   type        = map(string)
@@ -54,4 +43,17 @@ variable "tags" {
     solution    = "stategraph"
     environment = "dev"
   }
+}
+variable "cognito_users" {
+  description = "List of users to create in Cognito"
+  type = list(object({
+    username = string
+    email    = string
+  }))
+  default = [
+    {
+      username = "admin@example.com"
+      email    = "admin@example.com"
+    }
+  ]
 }
