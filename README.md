@@ -16,10 +16,7 @@ Terraform configuration that deploys StateGraph on AWS using ECS EC2 and RDS Pos
 
 1. **AWS CLI** configured with appropriate permissions
 2. **Terraform** >= 1.0
-3. **Google OAuth Application** - Set up at [Google Cloud Console](https://console.cloud.google.com/)
-   - Create OAuth 2.0 Client ID for web application
-   - Note the Client ID and Client Secret
-4. **Domain name** (optional, can use CloudFront domain)
+3. **Domain name** (optional, can use CloudFront domain)
 
 ## Quick Start
 
@@ -38,63 +35,63 @@ Terraform configuration that deploys StateGraph on AWS using ECS EC2 and RDS Pos
 
 ### Basic Configuration
 
+Create a `terraform.tfvars` file:
+
 ```hcl
-module "stategraph" {
-  source = "./stategraph-infra"
+aws_region         = "us-east-1"
+domain_name        = "stategraph.example.com"
+ecs_desired_count  = 2
+stategraph_version = "latest"
 
-  # Required variables
-  google_oauth_client_id     = "your-google-oauth-client-id"
-  google_oauth_client_secret = "your-google-oauth-client-secret"
-
-  # Optional variables
-  aws_region         = "us-east-1"
-  domain_name        = "stategraph.example.com"
-  ecs_desired_count  = 2
-  stategraph_version = "latest"
-  tags = {
-    Environment = "production"
-    Project     = "stategraph"
+cognito_users = [
+  {
+    username = "admin@example.com"
+    email    = "admin@example.com"
   }
+]
+
+tags = {
+  Environment = "production"
+  Project     = "stategraph"
 }
 ```
 
 ### Custom Database Configuration
 
 ```hcl
-module "stategraph" {
-  source = "./stategraph-infra"
+# terraform.tfvars
 
-  # ... other configuration ...
+aws_region = "us-east-1"
 
-  # Database configuration
-  db_instance_class = "db.t3.small"
-  db_password       = "your-secure-password"
-  # Enable backup
-  backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-}
+# Database configuration
+db_instance_class = "db.t3.small"
+db_password       = "your-secure-password"
+
+# Enable backup
+backup_retention_period = 7
+backup_window          = "03:00-04:00"
+maintenance_window     = "sun:04:00-sun:05:00"
 ```
 
 ### Production Configuration with Encryption
 
 ```hcl
-module "stategraph" {
-  source = "./stategraph-infra"
+# terraform.tfvars
 
-  # ... other configuration ...
+aws_region = "us-east-1"
 
-  # Production settings
-  ecs_desired_count = 3
-  db_instance_class = "db.r6g.large"
-  # Enable encryption
-  db_storage_encrypted = true
-  db_kms_key_id       = "arn:aws:kms:us-east-1:123456789012:key/abcd1234-ab12-cd34-ef56-abcdef123456"
-  tags = {
-    Environment = "production"
-    Project     = "stategraph"
-    Owner       = "platform-team"
-  }
+# Production settings
+ecs_desired_count = 3
+db_instance_class = "db.r6g.large"
+
+# Enable encryption
+db_storage_encrypted = true
+db_kms_key_id       = "arn:aws:kms:us-east-1:123456789012:key/abcd1234-ab12-cd34-ef56-abcdef123456"
+
+tags = {
+  Environment = "production"
+  Project     = "stategraph"
+  Owner       = "platform-team"
 }
 ```
 
@@ -121,9 +118,9 @@ The deployment automatically configures these environment variables:
 
 **OAuth Configuration:**
 - `STATEGRAPH_OAUTH_TYPE`: OAuth provider (oidc)
-- `STATEGRAPH_OAUTH_OIDC_ISSUER_URL`: OIDC issuer URL
-- `STATEGRAPH_OAUTH_CLIENT_ID`: OAuth client ID
-- `STATEGRAPH_OAUTH_CLIENT_SECRET`: OAuth client secret
+- `STATEGRAPH_OAUTH_OIDC_ISSUER_URL`: OIDC issuer URL (Cognito)
+- `STATEGRAPH_OAUTH_CLIENT_ID`: OAuth client ID (Cognito)
+- `STATEGRAPH_OAUTH_CLIENT_SECRET`: OAuth client secret (Cognito)
 - `STATEGRAPH_OAUTH_DISPLAY_NAME`: Login button text
 - `STATEGRAPH_OAUTH_REDIRECT_BASE`: OAuth callback base URL
 
@@ -153,10 +150,12 @@ For a complete list of environment variables, see: https://stategraph.com/docs/r
    # Create CNAME or ALIAS record pointing to the load balancer
    ```
 
-3. **OAuth Setup**:
+3. **Authentication Setup**:
    ```bash
-   # Get the OAuth redirect URI for Google Console configuration
-   terraform output google_oauth_redirect_uri
+   # Get Cognito configuration details
+   terraform output cognito_user_pool_id
+   terraform output cognito_client_id
+   terraform output cognito_login_url
    ```
 
 ## Scaling
@@ -181,9 +180,10 @@ terraform destroy
    - **Check**: Validate database credentials in Secrets Manager
 
 2. **OAuth Configuration**
-   - **Setup**: Configure Google OAuth at [Google Cloud Console](https://console.cloud.google.com/)
-   - **Redirect URI**: Use the `google_oauth_redirect_uri` output value
-   - **Documentation**: See [StateGraph OAuth docs](https://stategraph.com/docs/authentication/google-oauth)
+   - **Setup**: Authentication is handled by AWS Cognito
+   - **Users**: Configure users via the `cognito_users` variable
+   - **Login URL**: Use the `cognito_login_url` output value
+   - **Documentation**: See [StateGraph OAuth docs](https://stategraph.com/docs/authentication/oauth)
 
 3. **Load Balancer Health Checks**
    - **Check**: Target group health in AWS Console
@@ -207,8 +207,8 @@ terraform destroy
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.28.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | 3.8.1 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 6.28.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | >= 3.0.0 |
 
 ## Modules
 
