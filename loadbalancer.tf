@@ -6,7 +6,7 @@ resource "aws_lb" "main" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = aws_subnet.public[*].id
 
-  enable_deletion_protection = false
+  enable_deletion_protection = true
 
   tags = {
     Name = "stategraph-alb"
@@ -43,21 +43,7 @@ resource "aws_lb_listener" "stategraph" {
   protocol          = "HTTP"
 
   default_action {
-    type  = "authenticate-cognito"
-    order = 1
-
-    authenticate_cognito {
-      user_pool_arn       = aws_cognito_user_pool.main.arn
-      user_pool_client_id = aws_cognito_user_pool_client.main.id
-      user_pool_domain    = aws_cognito_user_pool_domain.main.domain
-
-      on_unauthenticated_request = "authenticate"
-    }
-  }
-
-  default_action {
     type             = "forward"
-    order            = 2
     target_group_arn = aws_lb_target_group.stategraph.arn
   }
 }

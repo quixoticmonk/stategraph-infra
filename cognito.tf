@@ -57,7 +57,7 @@ resource "aws_secretsmanager_secret_version" "cognito_client_secret" {
 # Cognito users
 resource "aws_cognito_user" "users" {
   for_each = { for user in var.cognito_users : user.username => user }
-  
+
   user_pool_id = aws_cognito_user_pool.main.id
   username     = each.value.username
 

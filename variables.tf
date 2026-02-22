@@ -4,6 +4,12 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "allowed_cidr_blocks" {
+  description = "CIDR blocks allowed to access resources. Leave empty to use your current IP automatically."
+  type        = list(string)
+  default     = []
+}
+
 variable "domain_name" {
   description = "Domain name for StateGraph (optional - will use ALB DNS if not provided)"
   type        = string

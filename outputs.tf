@@ -8,6 +8,16 @@ output "load_balancer_zone_id" {
   value       = aws_lb.main.zone_id
 }
 
+output "detected_ip" {
+  description = "Your detected public IP address"
+  value       = chomp(data.http.my_ip.response_body)
+}
+
+output "allowed_cidr_blocks" {
+  description = "CIDR blocks allowed for egress traffic"
+  value       = local.allowed_cidr_blocks
+}
+
 output "rds_endpoint" {
   description = "RDS instance endpoint"
   value       = aws_db_instance.postgres.endpoint

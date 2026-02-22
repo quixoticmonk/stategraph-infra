@@ -46,11 +46,11 @@ resource "aws_subnet" "private" {
 # NAT Gateway
 resource "aws_eip" "nat" {
   domain = "vpc"
-  
+
   tags = {
     Name = "stategraph-nat-eip"
   }
-  
+
   depends_on = [aws_internet_gateway.main]
 }
 
@@ -109,43 +109,43 @@ resource "aws_route_table_association" "private" {
 resource "aws_vpc_endpoint" "s3" {
   vpc_id       = aws_vpc.main.id
   service_name = "com.amazonaws.${var.aws_region}.s3"
-  
+
   tags = {
     Name = "stategraph-s3-endpoint"
   }
 }
 
 resource "aws_vpc_endpoint" "ecr_dkr" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  
+  vpc_id             = aws_vpc.main.id
+  service_name       = "com.amazonaws.${var.aws_region}.ecr.dkr"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.vpc_endpoints.id]
+
   tags = {
     Name = "stategraph-ecr-dkr-endpoint"
   }
 }
 
 resource "aws_vpc_endpoint" "ecr_api" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  
+  vpc_id             = aws_vpc.main.id
+  service_name       = "com.amazonaws.${var.aws_region}.ecr.api"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.vpc_endpoints.id]
+
   tags = {
     Name = "stategraph-ecr-api-endpoint"
   }
 }
 
 resource "aws_vpc_endpoint" "logs" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.logs"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = aws_subnet.private[*].id
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  
+  vpc_id             = aws_vpc.main.id
+  service_name       = "com.amazonaws.${var.aws_region}.logs"
+  vpc_endpoint_type  = "Interface"
+  subnet_ids         = aws_subnet.private[*].id
+  security_group_ids = [aws_security_group.vpc_endpoints.id]
+
   tags = {
     Name = "stategraph-logs-endpoint"
   }
@@ -156,108 +156,168 @@ resource "aws_security_group" "vpc_endpoints" {
   name_prefix = "stategraph-vpc-endpoints-"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs.id]
-  }
-
   tags = {
     Name = "stategraph-vpc-endpoints-sg"
   }
+}
+
+resource "aws_security_group_rule" "vpc_endpoints_ingress_ecs" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs.id
+  security_group_id        = aws_security_group.vpc_endpoints.id
+}
+
+resource "aws_security_group_rule" "vpc_endpoints_ingress_ecs_instance" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs_instance.id
+  security_group_id        = aws_security_group.vpc_endpoints.id
+}
+
+resource "aws_security_group_rule" "vpc_endpoints_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.vpc_endpoints.id
+  description       = "Allow all outbound for AWS service communication"
 }
 
 resource "aws_security_group" "alb" {
   name_prefix = "stategraph-alb-"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
-    description     = "Allow HTTP from CloudFront only"
-  }
-
-  ingress {
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
-    description     = "Allow HTTPS from CloudFront only"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Name = "stategraph-alb-sg"
   }
+}
+
+resource "aws_security_group_rule" "alb_ingress_cloudfront" {
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  prefix_list_ids   = [data.aws_ec2_managed_prefix_list.cloudfront.id]
+  security_group_id = aws_security_group.alb.id
+  description       = "Allow HTTP from CloudFront only"
+}
+
+resource "aws_security_group_rule" "alb_egress_ecs_instance" {
+  type                     = "egress"
+  from_port                = 32768
+  to_port                  = 65535
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs_instance.id
+  security_group_id        = aws_security_group.alb.id
+  description              = "Allow traffic to ECS instances on dynamic ports"
 }
 
 resource "aws_security_group" "ecs" {
   name_prefix = "stategraph-ecs-"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Name = "stategraph-ecs-sg"
   }
+}
+
+resource "aws_security_group_rule" "ecs_ingress_alb" {
+  type                     = "ingress"
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.alb.id
+  security_group_id        = aws_security_group.ecs.id
+}
+
+resource "aws_security_group_rule" "ecs_egress_rds" {
+  type                     = "egress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.rds.id
+  security_group_id        = aws_security_group.ecs.id
+  description              = "Allow traffic to RDS"
+}
+
+resource "aws_security_group_rule" "ecs_egress_vpc_endpoints" {
+  type                     = "egress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.vpc_endpoints.id
+  security_group_id        = aws_security_group.ecs.id
+  description              = "Allow traffic to VPC endpoints"
 }
 
 resource "aws_security_group" "ecs_instance" {
   name_prefix = "stategraph-ecs-instance-"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port       = 32768
-    to_port         = 65535
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Name = "stategraph-ecs-instance-sg"
   }
+}
+
+resource "aws_security_group_rule" "ecs_instance_ingress_alb" {
+  type                     = "ingress"
+  from_port                = 32768
+  to_port                  = 65535
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.alb.id
+  security_group_id        = aws_security_group.ecs_instance.id
+}
+
+resource "aws_security_group_rule" "ecs_instance_egress_rds" {
+  type                     = "egress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.rds.id
+  security_group_id        = aws_security_group.ecs_instance.id
+  description              = "Allow traffic to RDS"
+}
+
+resource "aws_security_group_rule" "ecs_instance_egress_vpc_endpoints" {
+  type                     = "egress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.vpc_endpoints.id
+  security_group_id        = aws_security_group.ecs_instance.id
+  description              = "Allow traffic to VPC endpoints"
+}
+
+resource "aws_security_group_rule" "ecs_instance_egress_internet" {
+  type              = "egress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.ecs_instance.id
+  description       = "Allow HTTPS to internet for container pulls"
 }
 
 resource "aws_security_group" "rds" {
   name_prefix = "stategraph-rds-"
   vpc_id      = aws_vpc.main.id
 
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_instance.id]
-  }
-
   tags = {
     Name = "stategraph-rds-sg"
   }
+}
+
+resource "aws_security_group_rule" "rds_ingress_ecs_instance" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.ecs_instance.id
+  security_group_id        = aws_security_group.rds.id
 }

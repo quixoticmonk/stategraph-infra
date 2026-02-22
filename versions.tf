@@ -8,12 +8,9 @@ terraform {
       source  = "hashicorp/random"
       version = ">= 3.0.0"
     }
-  }
-  cloud {
-    organization = "ne-devops"
-
-    workspaces {
-      name = "graph"
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.0"
     }
   }
 }

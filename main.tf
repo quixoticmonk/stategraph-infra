@@ -281,7 +281,7 @@ resource "aws_ecs_service" "stategraph" {
   }
 
   depends_on = [aws_lb_listener.stategraph, aws_autoscaling_group.ecs]
-  
+
   wait_for_steady_state = true
 
   tags = {
